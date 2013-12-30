@@ -1,0 +1,10 @@
+Stopped downloading at foodcan1
+
+Processing into convolutional training format...: pickled, with meta, correct basic size
+
+
+Problems:
+If we want to be able to change the size of the patches or the sets of resolutions, we need to be able to adjust the mean too...
+
+Is it alright to just subtract the same mean from the large patches across all the patches? Does this Come out to be the same for enough samples?
+If it isn't, then how can we do this? we don't want to load all the data at once, or spend a bunch of time calculating the mean at the start of training, so we want to do it here, or be able to finish the caclculation when we are about to train...?

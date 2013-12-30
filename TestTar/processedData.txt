@@ -1,0 +1,4 @@
+Number of Files 311
+Batch Size 50
+Number of Batches 6
+

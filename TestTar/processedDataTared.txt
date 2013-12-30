@@ -1,0 +1,3 @@
+Number of Files 122
+Batch Size 61
+Number of Batches 2
