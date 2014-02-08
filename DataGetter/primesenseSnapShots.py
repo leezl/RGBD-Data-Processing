@@ -1,4 +1,4 @@
-import sys
+import sys, os, platform
 import time
 import ctypes
 from primesense import openni2
@@ -40,7 +40,7 @@ class PrimesenseSnapshots:
     def setup_camera(self):
         print "Setup"
         #initialize the camera
-        openni2.initialize()
+        openni2.initialize(sys.path[-1]) #this only works because we added our openni path just now
         #AND/OR initialize niTE? (also inits openni)
         #find device
         self.device = openni2.Device.open_any()
@@ -141,8 +141,9 @@ class PrimesenseSnapshots:
         #save or drop or quit
         if choice == 's':
             #get base filename?
-            self.save_image(depthData)
-            self.save_image(colorData)
+            timer = time.time()
+            self.save_image(depthData[:,::-1,:], "default_"+str(timer)+ "_depth.png")
+            self.save_image(colorData[:,::-1,::-1], "default_"+str(timer)+ ".png")
         #else we just drop it and continue
 
     def save_image(self, image, filename="default"):
@@ -192,7 +193,7 @@ class PrimesenseSnapshots:
         #else:
         #    plt.show()
         #plt.close()
-        cv2.imshow('Color',image)
+        cv2.imshow('Color',image[:,::-1,::-1])
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
