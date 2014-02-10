@@ -5,8 +5,9 @@
 #in each tar take the one .txt and _Not.txt
 #copy these so there is one for each image
 #retar
+#idea: if you have many views of the same object, most labels will be the same
 
-tarfiles=$(find . -regextype posix-extended -regex '.*\.tar')
+tarfiles=$(find . -regextype posix-extended -regex '.*[0-9]+\.tar')
 
 #echo Tarfiles:
 #echo "$tarfiles"

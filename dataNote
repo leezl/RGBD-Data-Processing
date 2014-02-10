@@ -1,0 +1,38 @@
+#lab data: 
+-> collected
+-> cropped
+-> tared
+-> labeled
+
+#rgbd data:
+-> downloaded
+-> masks to crops
+-> retared
+-> labeled
+
+Done. Now:
+
+Create training and testing sets:
+
+For purely video testing: 
+
+* we can either train on everything, no validation, and then run it on the camera data 
+(this is, validate while while building the net, once we have a good one, switch to using all data to train it)
+
+* continue to have a left out validation set even when tetsing on camera data
+(this seems silly, as long as we have used validation to discover a good network, 
+and shown that it works on left out data, then when we finally test, we should use 
+all our data to improve the net. (since validation is not automated: we decide meta))
+
+* we will probably no matter what want several different groups of data:
+
+    -> random splits: several random splits of data: use some, not all train vs validation
+    -> semi-random splits: purposely split to test certain labels: split so that an entire 
+    object that has some label is removed, to see if generalization is REALLY working for attributes
+    -> random split by object: dont target a label, simply ensure that entire objects are either in 
+    training or testing, but not both
+    -> also: split across objects: train on 2 flashlights, not on third, see if we cna recognize it
+
+***HOW TO CODIFY THESE DATASPLITS???***
+
+Investigate the leveldb: do we need to create several of them? probably. 
