@@ -121,6 +121,9 @@ def split_data(howMany, fileList):
                 for filename in validfilelist:
                     f.write(validtarfile+' '+filename+'\n')
             f.close()
+        if howMany > len(splits):
+            print "WARNING "
+        print "We wanted ",howMany," and we got ",len(splits)
     #if directory exists, assume sets already exist, and skip
 
 '''
