@@ -15,6 +15,12 @@ Done. Now:
 -> training and validation sets
 -> mean image
 -> nan labels for unknowns
+-> separate file for labels now
+
+CREATE MEAN IMAGE
+CREATE ALL LABELS FILE
+CREATE CODE FOR CREATING A LIST OF TRAIN AND TEST FILENAMES GIVEN SOME LABEL WE ARE STUDYING
+CREATE CODE FOR MAKING A LEVELDB FROM A LIST OF FILES
 
 cross-validations note: "bad: Allowing some of the training data to also be included in the test set – this can happen due to "twinning" in the data set, whereby some exactly identical or nearly identical samples are present in the data set." -> leads to poor predcitions using cross-validation: do not split objects.
 

@@ -36,7 +36,6 @@ crop loadCrop(std::string filename) {
     //load crop values
     std::ifstream ifs;
     crop temp;
-    char ok;
     std::string argh = "";
     ifs.open ((filename+"_crop.txt").c_str(), std::ifstream::in);
     int cropval[4] = {-1};
@@ -45,27 +44,16 @@ crop loadCrop(std::string filename) {
     std::getline(ifs,argh, ' ');
     cropval[i] = std::stoi(argh);
     while (ifs.good() && i<4) {
-        std::cout << cropval[i]<<',';
         i++;
-        //ifs>>ok;//space skipper
-        //ifs>>cropval[i];
         std::getline(ifs,argh, ' ');
         cropval[i] = std::stoi(argh);
     }
     ifs.close();
-    std::cout<<"\n";
-
-    for( i=0; i<4; i++) {
-        std::cout<<cropval[i]<<',';
-    }
-    std::cout<<std::endl;
 
     temp.minx = cropval[0];
     temp.miny = cropval[1];
     temp.maxx = cropval[2];
     temp.maxy = cropval[3];
-    std::cout<<"imaprompt-> ";
-    std::cin>>ok;
 
     return temp;
 }
