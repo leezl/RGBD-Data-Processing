@@ -6,6 +6,9 @@ Decide if given item goes in train or valid
 Store filename (path, etc) in train or valid
 close and delete folders
 Next
+
+Issue: I do not guarantee that we get as many training sets as we ask for: I only guarantee uniqueness
+    -> reason: laziness: needs a while len(splits) < howMany check, and also a check that we can in fact split the data this many ways (ie, howMany > number of items)
 '''
 
 import sys, os
