@@ -358,8 +358,6 @@ class TaredPickler:
                 if depth != None and mask != None:
                     store=True
                     #print type(depth),',',type(mask)
-                    # add label value to labels for this batch, now that we know it will be in the batch
-                    self.labels.append(self.list_dictionary.index(name))
                     #display_color(mask)
                     # find cropping
                     coords = self.get_crop_box(mask)
@@ -422,15 +420,16 @@ class TaredPickler:
                 if (self.i+1)%self.batchSize == 0:
                     print "on image ",self.i," storing"
                     #set outputfile
-                    filenum = (self.i+1)/self.batchSize
-                    print "Pickling Batch: ",self.outputLoc+"/data_batch_"+str((self.i+1)/self.batchSize)
+                    filenum = (self.i)/self.batchSize
+                    print "Pickling Batch: ",self.outputLoc+"/data_batch_"+str((self.i)/self.batchSize)
                     if filenum-1>0:
                         assert os.path.exists(self.outputLoc+"/data_batch_"+str(filenum-1)), \
                             "Previous batch does not exist, "+str(filenum)+','+str(self.batchSize)+','+str(self.i)
-                    outputFileName = self.outputLoc+"/data_batch_"+str((self.i+1)/self.batchSize)
+                    outputFileName = self.outputLoc+"/data_batch_"+str((self.i)/self.batchSize)
                     if not os.path.exists(self.outputLoc):
                         os.makedirs(self.outputLoc)
                     outputFile = gzip.open(outputFileName, 'wb')
+                    assert len(self.data) == len(self.labels), "Not the same number of data and labels "+str(len(self.data))+','+str(len(self.labels))
                     #pickle
                     cPickle.dump({'data' : np.array(self.data), 'labels' : np.array(self.labels), 
                         'crop_boxes' : self.crop_list}, outputFile, protocol=cPickle.HIGHEST_PROTOCOL)

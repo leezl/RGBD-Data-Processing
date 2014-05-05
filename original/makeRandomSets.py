@@ -9,6 +9,8 @@ Next
 
 Issue: I do not guarantee that we get as many training sets as we ask for: I only guarantee uniqueness
     -> reason: laziness: needs a while len(splits) < howMany check, and also a check that we can in fact split the data this many ways (ie, howMany > number of items)
+
+
 '''
 
 import sys, os
@@ -16,6 +18,9 @@ import tarfile
 import string
 import shutil
 from random import shuffle
+from collections import defaultdict
+
+stopList = []
 
 '''
 Find train and validation lists
@@ -26,7 +31,7 @@ def find_train_and_validation(directories, howMany):
     fileList = {}#find_tared_data('.')
     for directory in directories:
         fileList.update(find_tared_data(directory))
-    print "FileList: ",len(fileList)
+    print 'filelist length: ', len(fileList)
     #split the fileList randomly: across objects, across all...
     split_data(howMany, fileList)
     # 
@@ -39,7 +44,7 @@ def find_train_and_validation(directories, howMany):
 '''
 Function to find word counts for given tarfile
 '''
-def collect_statistics(tarfilename):
+def collect_statistics(tarfilename, filenames):
     print "Processing ",tarfilename
     #open the tarfile
     tared = tarfile.open(tarfilename, 'r')
@@ -47,12 +52,14 @@ def collect_statistics(tarfilename):
     dictionary_this_file = {}
     try:
         #for each label file in the tarfile
-        for index in range(0, len(fileList[tarfilename])):
+        for index in range(0, len(filenames)):
             #read all the labels into the same dictionary
             #extract the label files
-            tared.extractall(members=current_file(tared, fileList[tarfilename][index]))
+            tared.extractall(members=current_file(tared, filenames[index]))
             #load labels into the dictionary
-            load_labels(fileList[tarfilename][index], dictionary_this_file)
+            load_labels(filenames[index], dictionary_this_file)
+        '''
+        #no idea where this came form. useless
         #have all labels from tarfile in the dictionary: check if needed label there?
         if label in dictionary_this_file.keys():
             if dictionary_this_file[label]>0:
@@ -65,13 +72,31 @@ def collect_statistics(tarfilename):
             #label not present: unknown labeling:
             #add the tarfile and list to unknownLabelList
             unknownLabelList[tarfilename] = fileList[tarfilename]
+        '''
     finally:
         #remove extracted directory
-        dirToDel = fileList[tarfilename][index].split('/')[0]
+        #print filenames[0].split('/')[0]
+        dirToDel = os.getcwd()+'/'+filenames[0].split('/')[0]
+        #print "What we're deleting ",dirToDel
         shutil.rmtree(dirToDel)#be careful here
-    #close tarfile
-    tared.close()
+        #system(("exec rm -r "+str(dirToDel)).c_str()); //c++ method
+        #close tarfile
+        tared.close()
     return dictionary_this_file
+
+'''
+Function: for given file, load dicitonary and add terms to other dictionary
+'''
+def get_count(tarfilename, filenames, otherDictionary):
+    temp_dictionary = collect_statistics(tarfilename, filenames)
+    update_dictionary(temp_dictionary, otherDictionary)
+
+def update_dictionary(sub_dictionary, super_dictionary):
+    for item in sub_dictionary.keys():
+        if item in super_dictionary:
+            super_dictionary[item] = super_dictionary[item] + sub_dictionary[item]
+        else:
+            super_dictionary[item] = sub_dictionary[item]
 
 '''
 Function: split the data we have into several train and valid sets
@@ -96,6 +121,8 @@ def split_data(howMany, fileList):
         if possibleSplit not in splits:
             validList=[]
             trainList=[]
+            trainDictionary = {}
+            validDictionary = {}
             splits.append(possibleSplit)
             #store split to file:
             #4-1 split is default:
@@ -104,8 +131,21 @@ def split_data(howMany, fileList):
             for j in range(0, validSize):
                 #store the tarfile followed by the list of files in it
                 validList.append((fileList.keys()[possibleSplit[j]],fileList[fileList.keys()[possibleSplit[j]]]))
+                #add labels occurences to validDictionary
+                get_count(fileList.keys()[possibleSplit[j]], fileList[fileList.keys()[possibleSplit[j]]], validDictionary)
             for j in range(validSize, len(fileList)):
                 trainList.append((fileList.keys()[possibleSplit[j]],fileList[fileList.keys()[possibleSplit[j]]]))
+                #add label occurences to validationDictionary
+                get_count(fileList.keys()[possibleSplit[j]], fileList[fileList.keys()[possibleSplit[j]]], trainDictionary)
+
+            # get complete dictionary, so we can print all values at once
+            allWords = set(validDictionary.keys() + trainDictionary.keys())
+
+            #assert len(allWords) == len(validDictionary.keys()) + len(trainDictionary.keys()), \
+            #    "Failed to combine list of keys "+str(len(allWords))+' '+str(len(validDictionary.keys()) +len(trainDictionary.keys()))
+
+            trainDictionary = defaultdict(lambda: 0, trainDictionary)
+            validDictionary = defaultdict(lambda: 0, validDictionary)
 
             #this should be all of them
             assert (len(fileList)) == (len(trainList) + len(validList)), " Haven't used all of the items "
@@ -124,6 +164,13 @@ def split_data(howMany, fileList):
                 for filename in validfilelist:
                     f.write(validtarfile+' '+filename+'\n')
             f.close()
+            #also store the counts per label of trainging vs validation occurences
+            f = open("TrainingSets/random"+'/count_'+str(i),'w')
+            print "Adding counts"
+            for word in allWords:
+                #print "Adding to count: "
+                f.write(word+' '+str(trainDictionary[word])+' '+str(validDictionary[word])+'\n')
+            f.close()
         if howMany > len(splits):
             print "WARNING "
         print "We wanted ",howMany," and we got ",len(splits)
@@ -133,7 +180,7 @@ def split_data(howMany, fileList):
 Function: find all image files recursively in directory "data"
     *collect the list of tar files & list of files in each tar*This way we don't have to extract them, just each image as we need it...
 '''
-def find_tared_data(directory='original/tared'):
+def find_tared_data(directory='original/tared', skip=1):
     print "Finding Data ",directory
     #check color and real vs generated
     #check directoryList not emtpy
@@ -145,6 +192,7 @@ def find_tared_data(directory='original/tared'):
             #print item,',',dirs
             #if it really is a tar file:
             if tarfile.is_tarfile(os.path.join(dirs,item)):#do we need path too? yes
+                object_count = 0
                 tared = tarfile.open(os.path.join(dirs,item), 'r')
                 contents = tared.getnames()
                 key = os.path.join(dirs, item)
@@ -153,16 +201,22 @@ def find_tared_data(directory='original/tared'):
                 for pic in contents:
                     #print "Contents: ",type(pic),", ",pic
                     #check if pic is the original color picture (not crop, not mask etc)
-                    if not ("_loc" in pic) and not ("_crop" in pic) and not ("_Not" in pic) and ('.txt' in pic):
+                    if not ("_loc" in pic) and not ("_crop" in pic) \
+                        and not ("_Not" in pic) and ('.txt' in pic):
                         #print "File: ",type(pic),", ",pic
                         #emergency_quit()
-                        if key in files:
-                            checklength = len(files[key])
-                            files[key].append(pic[:-4])
-                            assert checklength!=len(files[key]), "Failed to add item to list: check reference stuff"
-                        else:
-                            files[key] = []
-                            files[key].append(pic[:-4])
+                        #only take every 20th image, and take all lab data
+                        #print directory
+                        if 'lab' in directory or object_count%skip == 0:
+                            if key in files: #key is the tarfile (should be)
+                                checklength = len(files[key])
+                                files[key].append(pic[:-4])
+                                assert checklength!=len(files[key]), \
+                                    "Failed to add item to list: check reference stuff"
+                            else:
+                                files[key] = []
+                                files[key].append(pic[:-4])
+                        object_count = object_count + 1
                 #clear for next file...shouldn't be needed now that I look
                 #members[:] = []
                 tared.close()
@@ -184,6 +238,7 @@ def load_labels(filename, dictionary):
         #raw_input('-Enter-')
         sys.exit()
     else:
+        local_dictionary = {}
         #get all sentences (one per line)
         sentences = f.readlines() #read sentences
         #while still sentences in list:
@@ -196,10 +251,10 @@ def load_labels(filename, dictionary):
                 word = ''.join(c.lower() for c in word if c not in exclude)
                 if word not in stopList:
                     #store counts
-                    if word in dictionary:
-                        dictionary[word] = dictionary[word] + 1
+                    if word in local_dictionary: #only count word once per image
+                        pass#dictionary[word] = dictionary[word] + 1
                     else:
-                        dictionary[word] = 1
+                        local_dictionary[word] = 1
         f.close()
     try:
         f = open(filename+"_Not.txt")#default read
@@ -221,11 +276,12 @@ def load_labels(filename, dictionary):
                 word = ''.join(c.lower() for c in word if c not in exclude)
                 if word not in stopList:
                     #store counts
-                    if word in dictionary:
-                        dictionary[word] = dictionary[word] - 1
+                    if word in local_dictionary: #only count word once per image
+                        pass#dictionary[word] = dictionary[word] - 1
                     else:
-                        dictionary[word] = 0
+                        local_dictionary[word] = -1
         f.close()
+    update_dictionary(local_dictionary, dictionary)
 
 '''
 Function: tries to load only needed file at once...
@@ -246,7 +302,7 @@ def emergency_quit():
 if __name__ == "__main__":
     print type(sys.argv),',',type(sys.argv[0])
     if len(sys.argv) < 2:
-        print "Need an argument"
+        print "Need an argument: how many splits to make "
         sys.exit()
     #add possible many labels
     howMany = int(sys.argv[1])

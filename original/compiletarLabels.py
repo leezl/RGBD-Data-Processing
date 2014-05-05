@@ -74,9 +74,9 @@ def load_labels(filename, dictionary):
                 if word not in stopList:
                     #store counts
                     if word in dictionary:
-                        dictionary[word] = dictionary[word] + 1
+                        dictionary[word] = (dictionary[word][0] + 1, dictionary[word][1])
                     else:
-                        dictionary[word] = 1
+                        dictionary[word] = (1, 0)
         f.close()
     try:
         f = open(filename+"_Not.txt")#default read
@@ -98,9 +98,9 @@ def load_labels(filename, dictionary):
                 if word not in stopList:
                     #store counts
                     if word in dictionary:
-                        dictionary[word] = dictionary[word] + 1
+                        dictionary[word] = (dictionary[word][0], dictionary[word][1] + 1)
                     else:
-                        dictionary[word] = 1
+                        dictionary[word] = (0, 1)
         f.close()
 
 '''
