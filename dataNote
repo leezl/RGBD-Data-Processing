@@ -1,0 +1,75 @@
+#lab data: 
+-> collected
+-> cropped
+-> tared
+-> labeled
+
+#rgbd data:
+-> downloaded
+-> masks to crops
+-> retared
+-> labeled
+
+General:
+-> mean image and total label list: (meanandlabels.py)
+-> training and validation sets: makeTrainValidSets.p (from label), makeRandomSets.py (random object splits)
+
+
+Done. Now:
+-> nan labels for unknowns
+-> separate file for labels now
+-> load into leveldb, or load straight from tars during training
+
+(x) CREATE MEAN IMAGE 
+(x) CREATE ALL LABELS FILE
+(x) CREATE CODE FOR CREATING A LIST OF TRAIN AND TEST FILENAMES GIVEN SOME LABEL WE ARE STUDYING
+( ) CREATE CODE FOR MAKING A LEVELDB FROM A LIST OF FILES
+
+cross-validations note: "bad: Allowing some of the training data to also be included in the test set – this can happen due to "twinning" in the data set, whereby some exactly identical or nearly identical samples are present in the data set." -> leads to poor predcitions using cross-validation: do not split objects.
+
+Create training and testing sets:
+
+For purely video testing: 
+
+* we can either train on everything, no validation, and then run it on the camera data 
+(this is, validate while while building the net, once we have a good one, switch to using all data to train it)
+
+* continue to have a left out validation set even when tetsing on camera data
+(this seems silly, as long as we have used validation to discover a good network, 
+and shown that it works on left out data, then when we finally test, we should use 
+all our data to improve the net. (since validation is not automated: we decide meta))
+
+* we will probably no matter what want several different groups of data:
+
+    -> random splits: several random splits of data: use some, not all train vs validation
+    -> semi-random splits: purposely split to test certain labels: split so that an entire 
+    object that has some label is removed, to see if generalization is REALLY working for attributes
+    -> random split by object: dont target a label, simply ensure that entire objects are either in 
+    training or testing, but not both
+    -> also: split across objects: train on 2 flashlights, not on third, see if we cna recognize it
+
+***HOW TO CODIFY THESE DATASPLITS???***
+
+Investigate the leveldb: do we need to create several of them? probably. 
+
+system for quickly creating new training vs validation sets base don a given label?
+
+* if we make a leveldb for each set, that leads to the problem of data duplication:
+    The system is set up to take 2 leveldbs: train and test(read validate). we do not want to repeat our info.
+    Does leveldb offer a way to have one leveldb, but to access all item with X label, or field?
+
+
+Raw Size:   110.6 MB (estimated)
+File Size:  62.9 MB (estimated)
+
+Is this space increase good enough?
+
+Would it be acceptable to leave the data in tar files, and keep lists of the (tarfile, filepath) instead?
+Since we would only do this during training, does the speed issue matter?
+
+Try our own comparison: create same data split: one is a pair of lists, one is a pair of leveldbs: compare size and read speed
+
+Also: can we use SQL? We could put all our data into a postgresql database, split it once at the beginning of training based on a given split, then train...maybe?
+  -> compression?
+  -> reasonable access?
+  -> how long would it take to create that reasonable split from a database...?

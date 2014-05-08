@@ -1,0 +1,7 @@
+Things to watch:
+
+Can neural networks trained using some positives, some negatives and nans do decent single class classifications? Does it still predct positive for everything if only positives are shown?
+
+Would pre-training on imagenet help? Probably.
+
+Can we find an 'average' object by cross-validation: training on flashlight 2, predicts flashlight 1 and 3 better then either of the others on their own. Find more general object relations based on how well they predict each other? Create object graph and weight edges based on prediction values...
