@@ -1,9 +1,13 @@
 '''
-Version of rgbPickler which loads from .tar files into pickled files.
+Python2.7
+Version of rgbPickler which loads from .tar files into pickledGZipped files.
 
-* This version stops pickling if ctrl c is hit, and stores a save point.
+Data is assumed to be of format: image, depth image, mask image, text of positive sentences, and text of negative list.
+This is also currently set for Kinect data, notably the scales of the images: 640,480,4.  The images must be the same shape.
+This could be changed.
 
-Better Version: Also gzips the pickle/ pickles the gzip? Check which convnet allows for, see NOTE
+* This version stops pickling if ctrl c is hit, and stores a save point, so that pickling can be continued later.
+
 '''
 
 import sys, os
@@ -17,22 +21,29 @@ import signal
 import threading
 import time
 
+'''
+This class is responsible for finding the data in the provided folders, 
+loading the data, findign the meta data, and creating pickled batches of the data.
+
+This is intended for use with Cuda-Convnet, though it could be adapted for other purposes.
+'''
+
 class TaredPickler:
 
     def __init__(self, dataDirs = ['original/tared', 'original/lab']):
+        #flag for whether we have processed everything. For use with a thread that checks for Ctrl+C
         self.done=False
+        #Just printng the current directory for reference
         print os.getcwd()
+        #if the progressLog (our save point) does not exist, start over
         if not os.path.isfile(os.getcwd()+'/progressLog'):
-            #fresh batch
+            #start fresh batch
             print "No Previous Log Saved"
             self.set_up(dataDirs)
         else:
+            #have a save point
+            #return here later
             self.originalDir = os.getcwd()
-            self.directoryc = []
-            for item in dataDirs:
-                os.chdir(item)
-                self.directoryc += os.getcwd()
-                os.chdir(self.originalDir)
             print "Loading Previous Log"
             #load progress from file
             fo = open('progressLog', 'rb')
@@ -40,6 +51,8 @@ class TaredPickler:
             fo.close()
             #remove log:
             os.remove('progressLog')
+            #
+            self.directoryc = diction['directoryc']
             #load fileList
             self.fileList = diction['fileList']
             #load totalDictionary
@@ -61,11 +74,15 @@ class TaredPickler:
         self.do_not_exit = True
         self.outputLoc = "pickledGZip"
         
+    '''
+    Sets all variable, finds data list
+    '''
     def set_up(self, dataDirs):
         #find all files
         self.originalDir = os.getcwd()
         self.directoryc = []
         self.fileList = []
+        # This attemtps to get the complete path to folders in this directory
         for item in dataDirs:
             os.chdir(item)
             self.directoryc += [os.getcwd()]
@@ -76,21 +93,10 @@ class TaredPickler:
         #find a fair batch_size here
         numFiles = len(self.fileList)
         print "How many files in all tars? ", numFiles
-        #find batch size that results in equal size batches, of less than 50 per batch
-        #initial batchSize (smallest)
-        self.batchSize = 30
-        #find next even division
-        while (numFiles%self.batchSize != 0) and self.batchSize<100:#(batchSize != numFiles):
-            self.batchSize = self.batchSize + 1
-        if self.batchSize>=100:
-            drop = numFiles%50
-            for i in range(0, drop):
-                self.fileList.pop() #should be insignificant...even within an item...
-            self.batchSize = 50
-        print "Batch Size ",self.batchSize
-        print "Number of Batches ",numFiles/self.batchSize
+        #set the batch size 
+        find_batch_size(numFiles)
         #self.emergency_quit()
-        #store this batches data
+        #store this set's data; so you can see what it tries to do next
         f = open('processedDataTared.txt', 'w')
         f.write('Number of Files '+str(numFiles)+'\n')
         f.write('Batch Size '+str(self.batchSize)+'\n')
@@ -106,6 +112,7 @@ class TaredPickler:
         #maxMinPoints: tracks the largest crop box for the data: first two are high, stupid, but the other code is like that...change now?
         self.maxMinPoints = [900,900,-1,-1]
         #mean image:
+        #THIS SHOULD BE SET AUTOMATICALLY: load an image, set the shape...
         self.meanSum = np.zeros((480,640,4)).astype(np.single)
         self.i = 0
         #crop_list: collect the crop box coords for each image
@@ -115,6 +122,28 @@ class TaredPickler:
         #data: store the stacked color and depth as np.single
         self.data = []
 
+    '''
+    Attempts to find a batch size which leads to an equal division of images
+    '''
+    def find_batch_size(self, numFiles, goalSize=50, minSize=30, maxSize=100):
+        #find batch size that results in equal size batches, of less than 50 per batch
+        #initial batchSize (smallest)
+        self.batchSize = minSize
+        #find next even division
+        while (numFiles%self.batchSize != 0) and self.batchSize<maxSize:#(batchSize != numFiles):
+            self.batchSize = self.batchSize + 1
+        if self.batchSize>=maxSize:
+            drop = numFiles%goalSize
+            for i in range(0, drop):
+                self.fileList.pop() #should be insignificant...even within an item...
+            self.batchSize = goalSize
+        print "Batch Size ",self.batchSize
+        print "Number of Batches ",numFiles/self.batchSize
+
+
+    '''
+    This begins the pickler and then watches for the shutdown signal.
+    '''
     def run(self):
         #create thread
         self.t = threading.Thread(target=self.main_pickler, args=())
@@ -169,7 +198,7 @@ class TaredPickler:
         return files
 
     '''
-    The folowing are all display/debug functions
+    A debug function to check what you are loading
     '''
     def display_color(self, image, brief = False):
         print "Displaying color"
@@ -242,7 +271,8 @@ class TaredPickler:
         return result
 
     '''
-    Function: parse filename: pulls out the object name (apple) from the file
+    Function: parse filename: pulls out the object name (apple) from the filename, if it is there...
+    If your data changes at all, this won't work.
     '''
     def parse_name(self, filename):
         #strip path
@@ -257,7 +287,7 @@ class TaredPickler:
         return sub[-2][:-2] 
 
     '''
-    Function: Load total_dictionary
+    Function: Load total_dictionary (based on filenames)
     '''
     def load_dictionary(self, fileList):
         #load from fileList
@@ -292,6 +322,9 @@ class TaredPickler:
                 or tarinfo.name == filename[:len(filename)-9]+"depth.png" or tarinfo.name == filename[:len(filename)-4]+"_crop.txt":
                 yield tarinfo
 
+    '''
+    
+    '''
     def reflect_image(self, name, coords, image, depth):
         #reflect image
         imageRef = image[:,::-1,:]
@@ -499,6 +532,7 @@ class TaredPickler:
             diction['crop_list'] = self.crop_list 
             diction['labels'] = self.labels
             diction['data'] = self.data
+            diciton['directoryc'] = self.directoryc
             print "Progress at save time ",self.i," of ",len(self.fileList)
             #save progress to file
             fo = open('progressLog', 'wb')
