@@ -1,0 +1,58 @@
+The goal of this project is to collect images from the Kinect. It allows for Kinect motion, segmentation of planes, and directional filtering of the clouds, as well as for storage of images of the clouds (not the clouds themselves, I didn't need that.)
+
+It depends on Openni and PCL, along with their dependencies.
+
+PROGRAM AS IS:
+
+Make sure you have PCL, OPENNI, MAGICK++ and an updated CMAKE. enter build directory and type:
+    cmake ..
+    make
+    ./imageMaker
+
+USEFUL FILES:
+
+--Readme 
+    You are reading this.
+
+--citations
+    a short collection of useful people and places
+
+--CMakeLists.txt
+    This is the actual directions for building this project. It lists all the libraries and special paths necessary and will likely need updating to work on other systems.
+
+--imageMaker.py
+    This is the main file that includes all the others. It is mostly a menu for selecting and updating the processes being run on the point clouds.
+    You must:
+        *Display the cloud before grabbing a copy of it.
+        *There is no method of saving point clouds here.
+
+--openniViewer.cpp
+    This is the file that actually meshes with the Kinect, colects clouds, and processes them. It is very messy, and slow as implemented here.
+
+--kinectMotor.cpp
+    This is a handy document that allows you to move the Kinect. 
+
+TUTORIALS
+
+The rest of the files are just copies of the tutorials from the pcl website:
+
+--cloudtoRangeComp.py
+    A totally unecessary file that loads stored clouds and range images and attempts to compare them.
+
+--indexExtractor.cpp
+    This is the PCL tutorial on removing select points from a cloud. I used it to remove the points of a plane from the point cloud.
+
+--openniTest.cpp
+    This is the original openniViewer tutorial, which I altered to include options for everything.
+
+--passThroughRangeFilter.cpp
+    This is the tutorial on removing points outside of a certain range along any axis.
+
+--planarSegmentor.cpp
+    This is the tutorial that uses Ransac to find the largest plane in the image.
+
+--rangeImageMaker.cpp
+    This is the tutorial that creates a range image from the point cloud. There is no color data in range images.
+
+--rangetoPng.cpp
+    This was a suggested version of image saving. It didn't work.
